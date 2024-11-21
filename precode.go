@@ -55,7 +55,7 @@ func getTasks(w http.ResponseWriter, r *http.Request) {
 	// так как все успешно, то статус OK
 	w.WriteHeader(http.StatusOK)
 	// записываем сериализованные в JSON данные в тело ответа
-	w.Write(resp)
+	_, _ = w.Write(resp)
 }
 
 func postTasks(w http.ResponseWriter, r *http.Request) {
@@ -73,6 +73,20 @@ func postTasks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Проверка, что Id не пустой
+	if task.ID == "" {
+		http.Error(w, "Id не может быть пустым", http.StatusBadRequest)
+		return
+	}
+
+	// Проверка, что задача с таким Id уже существует
+	for _, t := range tasks {
+		if t.ID == task.ID {
+			http.Error(w, "Задача с таким Id уже существует", http.StatusConflict)
+			return
+		}
+	}
+
 	tasks[task.ID] = task
 
 	w.Header().Set("Content-Type", "application/json")
@@ -84,7 +98,7 @@ func getTask(w http.ResponseWriter, r *http.Request) {
 
 	task, ok := tasks[id]
 	if !ok {
-		http.Error(w, "Задача не найдена", http.StatusNoContent)
+		http.Error(w, "Задача не найдена", http.StatusNotFound) // Исправлено на 404
 		return
 	}
 
@@ -104,20 +118,14 @@ func delTask(w http.ResponseWriter, r *http.Request) {
 
 	_, ok := tasks[id]
 	if !ok {
-		http.Error(w, "Задача не найдена", http.StatusNoContent)
+		http.Error(w, "Задача не найдена", http.StatusNotFound) // Исправлено на 404
 		return
 	}
 
 	delete(tasks, id)
-	resp, err := json.Marshal(tasks)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
 
-	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write(resp)
+
 }
 
 func main() {
